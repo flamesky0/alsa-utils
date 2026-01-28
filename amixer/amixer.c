@@ -1760,23 +1760,28 @@ static int split_line(char *buf, char **token, int max_token)
 static int exec_stdin(void)
 {
 	int narg;
-	char buf[256], *args[MAX_ARGS];
+	char *buf = NULL, *args[MAX_ARGS];
+	size_t size = 0;
 	int err = 0;
 
 	/* quiet = 1; */
 	ignore_error = 1;
 
-	while (fgets(buf, sizeof(buf), stdin)) {
+	while (getline(&buf, &size, stdin) > 0) {
 		narg = split_line(buf, args, MAX_ARGS);
 		if (narg > 0) {
 			if (!strcmp(args[0], "sset") || !strcmp(args[0], "set"))
 				err = sset(narg - 1, args + 1, 0, 1);
 			else if (!strcmp(args[0], "cset"))
 				err = cset(narg - 1, args + 1, 0, 1);
-			if (err < 0)
+			if (err < 0) {
+				free(buf);
 				return 1;
+			}
 		}
 	}
+
+	free(buf);
 	return 0;
 }
 
